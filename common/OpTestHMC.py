@@ -162,6 +162,7 @@ class HMCUtil():
         self.LOGIN_set = -1
         self.SUDO_set = -1
         self.sysinfo = OpTestSysinfo()
+        self.sysinfo_collected = False  # Track if sysinfo has been collected
 
     def check_lpar_secureboot_state(self, hmc_con):
         '''
@@ -1246,13 +1247,16 @@ class HMCConsole(HMCUtil):
                     log.warning(f"Failed to boot LPAR via HMC SSH: {boot_error}")
                     log.info("Will skip OS sysinfo collection")
             
-            # Collect OS sysinfo only if SSH is working
-            if ssh_success:
+            # Collect OS sysinfo only if SSH is working and not already collected
+            if ssh_success and not self.sysinfo_collected:
                 try:
                     log.info("Collecting OS sysinfo via SSH")
                     self.sysinfo.get_OSconfig(self.lpar_ssh, self.expect_prompt)
+                    self.sysinfo_collected = True  # Mark as collected
                 except Exception as sysinfo_error:
                     log.warning(f"Failed to collect OS sysinfo: {sysinfo_error}")
+            elif self.sysinfo_collected:
+                log.debug("OS sysinfo already collected, skipping")
             else:
                 log.warning("Skipping OS sysinfo collection - SSH connection not available")
         
